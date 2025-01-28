@@ -10,6 +10,7 @@ configurations.configureEach {
 
 configurations {
   runtimeClasspath.exclude group: "it.unimi.dsi", module: "fastutil"
+  runtimeClasspath.exclude group: "org.hyperledger.besu", module: "gnark"
 }
 
 dependencies {
@@ -22,11 +23,11 @@ dependencies {
   implementation project(':jvm-libs:linea:core:metrics')
   implementation project(':jvm-libs:linea:metrics:micrometer')
   implementation project(':jvm-libs:linea:core:domain-models')
+  implementation project(':jvm-libs:linea:clients:linea-state-manager')
   implementation project(':coordinator:utilities')
   implementation project(':coordinator:core')
   implementation project(':coordinator:clients:shomei-client')
   implementation project(':coordinator:clients:traces-generator-api-client')
-  implementation project(':coordinator:clients:type2-state-manager-client')
   implementation project(':coordinator:clients:prover-client:file-based-client')
   implementation project(':coordinator:clients:smart-contract-client')
   implementation project(':coordinator:ethereum:finalization-monitor')
@@ -78,10 +79,10 @@ jar {
   archiveBaseName = 'coordinator'
   manifest {
     attributes(
-      'Class-Path': project.configurations.runtimeClasspath.collect { it.getName() }.findAll { it.endsWith('jar') }.join(' '),
-      'Main-Class': 'net.consensys.zkevm.coordinator.app.CoordinatorAppMain',
-      'Multi-Release': 'true'
-    )
+        'Class-Path': project.configurations.runtimeClasspath.collect { it.getName() }.findAll { it.endsWith('jar') }.join(' '),
+        'Main-Class': 'net.consensys.zkevm.coordinator.app.CoordinatorAppMain',
+        'Multi-Release': 'true'
+        )
   }
 }
 
@@ -102,7 +103,34 @@ run {
     "-Dvertx.configurationFile=config/coordinator/vertx-options.json",
     "-Dlog4j2.configurationFile=config/coordinator/log4j2-dev.xml"
   ] + System.properties.entrySet()
-    .findAll { it.key.startsWith("config") }
-    .collect { "-D${it.key}=${it.value}" }
-  args = ["--traces-limits", "config/common/traces-limits-v1.toml", "--smart-contract-errors", "config/common/smart-contract-errors.toml", "--gas-price-cap-time-of-day-multipliers", "config/common/gas-price-cap-time-of-day-multipliers.toml", "config/coordinator/coordinator-docker.config.toml", "config/coordinator/coordinator-local-dev.config.overrides.toml"]
+  .findAll { it.key.startsWith("config") }
+  .collect { "-D${it.key}=${it.value}" }
+  args = [
+    "--traces-limits",
+    "config/common/traces-limits-v1.toml",
+    "--smart-contract-errors",
+    "config/common/smart-contract-errors.toml",
+    "--gas-price-cap-time-of-day-multipliers",
+    "config/common/gas-price-cap-time-of-day-multipliers.toml",
+    "config/coordinator/coordinator-docker.config.toml",
+    "config/coordinator/coordinator-local-dev.config.overrides.toml"
+  ]
+}
+
+test {
+  inputs.dir("$rootDir/config/coordinator/")
+}
+
+task integrationTestAllNeeded {
+  description = "Runs integration tests of all dependencies of coordinator:app"
+  group = "verification"
+
+  def projectDependencies = configurations.implementation.getAllDependencies().withType(ProjectDependency)
+  def dependentProjects = projectDependencies.dependencyProject
+  dependentProjects.each { dependency ->
+    if (dependency.project.tasks.findByName("integrationTest")) {
+      def integrationTestTask = "${dependency.path}:integrationTest"
+      dependsOn integrationTestTask
+    }
+  }
 }

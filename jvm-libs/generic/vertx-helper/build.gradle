@@ -1,8 +1,11 @@
 plugins {
-    id 'net.consensys.zkevm.kotlin-library-conventions'
+  id 'net.consensys.zkevm.kotlin-library-conventions'
 }
 
+description = "Vertx utilities"
+
 dependencies {
+  implementation project(':jvm-libs:generic:extensions:kotlin')
   implementation project(':jvm-libs:generic:extensions:futures')
   implementation "io.vertx:vertx-core"
   implementation "io.vertx:vertx-web"
@@ -21,4 +24,3 @@ dependencies {
 test {
   systemProperty "vertx.parameter.filename", "/vertx-options.json"
 }
-

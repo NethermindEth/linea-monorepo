@@ -1,12 +1,15 @@
 plugins {
   id 'java-library'
   id 'linea.web3j-codegen'
-  alias(libs.plugins.jreleaser)
+}
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
 }
 
 description = 'Web3J Java client for Linea L2 Message Service Contract'
 ext.artifactId = 'l2-message-service-contract-client'
-apply from: rootProject.file("gradle/publishing.gradle")
 
 dependencies {
   // this shall be very lightweight dependency, just export the generated sources
@@ -17,7 +20,7 @@ dependencies {
 
 web3jContractWrappers {
   def contractAbi = layout.buildDirectory.dir("${rootProject.projectDir}/contracts/abi").get()
-    .file("L2MessageServiceV1.0.abi").asFile.absolutePath
+      .file("L2MessageServiceV1.0.abi").asFile.absolutePath
 
   contractsPackage = "net.consensys.linea.contract"
   contracts = ["$contractAbi": "L2MessageService"]
